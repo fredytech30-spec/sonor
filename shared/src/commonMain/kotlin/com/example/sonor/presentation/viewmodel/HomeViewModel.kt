@@ -155,6 +155,10 @@ class HomeViewModel(
         musicController.setEqualizerEnabled(enabled)
     }
 
+    fun setEqualizerBandLevel(band: Int, level: Int) {
+        musicController.setEqualizerBandLevel(band, level)
+    }
+
     fun getSongsInFolder(folderPath: String): Flow<List<Song>> =
         songRepository.getSongsInFolder(folderPath)
 

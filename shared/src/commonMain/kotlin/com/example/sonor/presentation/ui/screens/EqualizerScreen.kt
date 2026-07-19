@@ -40,6 +40,7 @@ data class EqualizerPreset(
 fun EqualizerScreen(
     playerState: PlayerState,
     onToggleEqualizer: (Boolean) -> Unit,
+    onBandLevelChange: (Int, Int) -> Unit,
     onBack: () -> Unit
 ) {
     val bands = listOf("31", "63", "125", "250", "500", "1K", "2K", "4K", "8K", "16K")
@@ -127,7 +128,10 @@ fun EqualizerScreen(
                     Box(modifier = Modifier.height(200.dp)) {
                         EqualizerBand(
                             value = levels[index],
-                            onValueChange = { levels[index] = it },
+                            onValueChange = { 
+                                levels[index] = it 
+                                onBandLevelChange(index, it.toInt())
+                            },
                             enabled = playerState.equalizerEnabled
                         )
                     }
@@ -148,6 +152,9 @@ fun EqualizerScreen(
                 EqualizerPresetCard(preset) {
                     levels.clear()
                     levels.addAll(preset.levels)
+                    preset.levels.forEachIndexed { bandIdx, lvl ->
+                        onBandLevelChange(bandIdx, lvl.toInt())
+                    }
                 }
             }
             if (!showAllPresets) {

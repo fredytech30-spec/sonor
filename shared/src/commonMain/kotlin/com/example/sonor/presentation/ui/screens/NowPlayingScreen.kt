@@ -170,7 +170,9 @@ fun NowPlayingScreen(
                             artworkUri = currentSong?.albumArtUri,
                             contentDescription = currentSong?.title,
                             modifier = Modifier.fillMaxSize(),
-                            placeholderIconSize = 72.dp
+                            placeholderIconSize = 72.dp,
+                            mediaType = currentSong?.type ?: MediaType.AUDIO,
+                            songUri = currentSong?.uri
                         )
                     }
                 }
@@ -269,14 +271,24 @@ fun NowPlayingScreen(
                             Icons.Rounded.SkipPrevious,
                             contentDescription = "Précédent",
                             tint = WhitePure,
-                            modifier = Modifier.size(44.dp)
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
+
+                    // Reculer 10s
+                    IconButton(onClick = { onSeekTo((playerState.currentPosition - 10000).coerceAtLeast(0)) }) {
+                        Icon(
+                            Icons.Rounded.Replay10,
+                            contentDescription = "Reculer 10s",
+                            tint = WhitePure,
+                            modifier = Modifier.size(32.dp)
                         )
                     }
 
                     // Central Play / Pause button with glow
                     Box(
                         modifier = Modifier
-                            .size(80.dp)
+                            .size(76.dp)
                             .background(
                                 brush = Brush.radialGradient(
                                     listOf(LarkAccent.copy(alpha = 0.3f), Color.Transparent)
@@ -286,7 +298,7 @@ fun NowPlayingScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Surface(
-                            modifier = Modifier.size(70.dp),
+                            modifier = Modifier.size(64.dp),
                             color = WhitePure,
                             shape = CircleShape,
                             tonalElevation = 16.dp
@@ -304,11 +316,21 @@ fun NowPlayingScreen(
                                         imageVector = if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                                         contentDescription = if (playing) "Pause" else "Lecture",
                                         tint = MidnightBlack,
-                                        modifier = Modifier.size(44.dp)
+                                        modifier = Modifier.size(36.dp)
                                     )
                                 }
                             }
                         }
+                    }
+
+                    // Avancer 10s
+                    IconButton(onClick = { onSeekTo((playerState.currentPosition + 10000).coerceAtMost(playerState.duration)) }) {
+                        Icon(
+                            Icons.Rounded.Forward10,
+                            contentDescription = "Avancer 10s",
+                            tint = WhitePure,
+                            modifier = Modifier.size(32.dp)
+                        )
                     }
 
                     IconButton(onClick = onSkipNext) {
@@ -316,7 +338,7 @@ fun NowPlayingScreen(
                             Icons.Rounded.SkipNext,
                             contentDescription = "Suivant",
                             tint = WhitePure,
-                            modifier = Modifier.size(44.dp)
+                            modifier = Modifier.size(36.dp)
                         )
                     }
 
@@ -329,7 +351,7 @@ fun NowPlayingScreen(
                             },
                             contentDescription = "Répéter",
                             tint = if (playerState.repeatMode != PlayerState.REPEAT_MODE_OFF) LarkAccent else WhiteMuted,
-                            modifier = Modifier.size(28.dp)
+                            modifier = Modifier.size(24.dp)
                         )
                     }
                 }

@@ -6,9 +6,16 @@ import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import com.example.sonor.domain.model.PlayerState
 import com.example.sonor.domain.model.Song
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 public class MusicControllerImpl(context: Context) : MusicController {
 
@@ -17,12 +24,20 @@ public class MusicControllerImpl(context: Context) : MusicController {
     private val _playerState = MutableStateFlow(PlayerState())
     override val playerState: StateFlow<PlayerState> = _playerState.asStateFlow()
 
+    // Coroutine scope pour le polling de position (dure autant que le controller)
+    private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+    private var positionPollingJob: Job? = null
+
     private val listener = object : Player.Listener {
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             _playerState.value = _playerState.value.copy(
                 isPlaying = isPlaying,
-                playbackState = if (isPlaying) PlayerState.STATE_READY else PlayerState.STATE_IDLE
+                playbackState = if (isPlaying) PlayerState.STATE_READY else PlayerState.STATE_IDLE,
+                duration = exoPlayer.duration.coerceAtLeast(0),
+                currentPosition = exoPlayer.currentPosition.coerceAtLeast(0)
             )
+            // Démarrer/arrêter le polling selon l'état de lecture
+            if (isPlaying) startPositionPolling() else stopPositionPolling()
         }
 
         override fun onPlaybackStateChanged(playbackState: Int) {
@@ -33,7 +48,8 @@ public class MusicControllerImpl(context: Context) : MusicController {
                     Player.STATE_READY -> PlayerState.STATE_READY
                     Player.STATE_ENDED -> PlayerState.STATE_ENDED
                     else -> PlayerState.STATE_IDLE
-                }
+                },
+                duration = exoPlayer.duration.coerceAtLeast(0)
             )
         }
 
@@ -48,7 +64,9 @@ public class MusicControllerImpl(context: Context) : MusicController {
             _playerState.value = _playerState.value.copy(
                 currentSongId = nextId,
                 // currentSong will be enriched by HomeViewModel using song list
-                currentSong = _playerState.value.currentSong?.takeIf { it.id == nextId }
+                currentSong = _playerState.value.currentSong?.takeIf { it.id == nextId },
+                currentPosition = 0L,
+                duration = exoPlayer.duration.coerceAtLeast(0)
             )
             updatePlayerState()
         }
@@ -63,10 +81,39 @@ public class MusicControllerImpl(context: Context) : MusicController {
         )
     }
 
+    /**
+     * Démarre un polling de position toutes les 500ms pour mettre à jour
+     * currentPosition et duration en temps réel pendant la lecture.
+     */
+    private fun startPositionPolling() {
+        positionPollingJob?.cancel()
+        positionPollingJob = scope.launch {
+            while (isActive) {
+                val pos = exoPlayer.currentPosition.coerceAtLeast(0)
+                val dur = exoPlayer.duration.coerceAtLeast(0)
+                _playerState.value = _playerState.value.copy(
+                    currentPosition = pos,
+                    duration = dur
+                )
+                delay(500)
+            }
+        }
+    }
+
+    private fun stopPositionPolling() {
+        positionPollingJob?.cancel()
+        positionPollingJob = null
+        // Snapshot final position when paused
+        _playerState.value = _playerState.value.copy(
+            currentPosition = exoPlayer.currentPosition.coerceAtLeast(0),
+            duration = exoPlayer.duration.coerceAtLeast(0)
+        )
+    }
+
     private fun updatePlayerState() {
         _playerState.value = _playerState.value.copy(
-            duration = exoPlayer.duration,
-            currentPosition = exoPlayer.currentPosition,
+            duration = exoPlayer.duration.coerceAtLeast(0),
+            currentPosition = exoPlayer.currentPosition.coerceAtLeast(0),
             shuffleModeEnabled = exoPlayer.shuffleModeEnabled,
             repeatMode = when (exoPlayer.repeatMode) {
                 Player.REPEAT_MODE_OFF -> PlayerState.REPEAT_MODE_OFF
@@ -94,8 +141,10 @@ public class MusicControllerImpl(context: Context) : MusicController {
             currentSong = song,
             currentSongId = song.id,
             isPlaying = true,
-            currentQueue = listOf(song)
+            currentQueue = listOf(song),
+            currentPosition = 0L
         )
+        startPositionPolling()
     }
 
     override fun play(songs: List<Song>, startIndex: Int) {
@@ -109,18 +158,22 @@ public class MusicControllerImpl(context: Context) : MusicController {
             currentSong = current,
             currentSongId = current?.id,
             isPlaying = true,
-            currentQueue = songs
+            currentQueue = songs,
+            currentPosition = 0L
         )
+        startPositionPolling()
     }
 
     override fun pause() {
         exoPlayer.pause()
         _playerState.value = _playerState.value.copy(isPlaying = false)
+        stopPositionPolling()
     }
 
     override fun resume() {
         exoPlayer.play()
         _playerState.value = _playerState.value.copy(isPlaying = true)
+        startPositionPolling()
     }
 
     override fun skipNext() {
@@ -173,16 +226,25 @@ public class MusicControllerImpl(context: Context) : MusicController {
         // TODO: Implement actual equalizer band control
     }
 
+    private var sleepTimerJob: kotlinx.coroutines.Job? = null
+
     override fun setSleepTimer(minutes: Int) {
-        // TODO: Implement sleep timer
+        cancelSleepTimer()
+        sleepTimerJob = scope.launch {
+            delay(minutes * 60 * 1000L)
+            pause()
+        }
     }
 
     override fun cancelSleepTimer() {
-        // TODO: Cancel sleep timer
+        sleepTimerJob?.cancel()
+        sleepTimerJob = null
     }
 
     // Platform-specific cleanup API (kept local for now; controller lifecycle should call this)
     fun release() {
+        positionPollingJob?.cancel()
+        sleepTimerJob?.cancel()
         exoPlayer.removeListener(listener)
         exoPlayer.release()
     }

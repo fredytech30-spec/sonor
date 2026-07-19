@@ -40,6 +40,7 @@ import com.example.sonor.presentation.viewmodel.HomeUiState
 import com.example.sonor.presentation.ui.components.MediaArtwork
 import com.example.sonor.ui.theme.*
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 
 @Composable
 fun HomeScreen(
@@ -214,22 +215,20 @@ fun ArtistCard(artist: Artist, onArtistClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Surface(
-                modifier = Modifier.size(64.dp),
-                color = GlassSurface,
-                shape = RoundedCornerShape(16.dp)
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(GlassSurface),
+                contentAlignment = Alignment.Center
             ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Person,
-                        contentDescription = artist.name,
-                        tint = WhiteMuted,
-                        modifier = Modifier.size(32.dp)
-                    )
-                }
+                // Show first song artwork for artist if available, else person icon
+                Icon(
+                    imageVector = Icons.Rounded.Person,
+                    contentDescription = artist.name,
+                    tint = WhiteMuted,
+                    modifier = Modifier.size(32.dp)
+                )
             }
 
             Column(
@@ -290,22 +289,21 @@ fun AlbumCard(album: Album, onAlbumClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Surface(
-                modifier = Modifier.size(64.dp),
-                shape = RoundedCornerShape(16.dp)
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(GlassSurface)
             ) {
-                // Placeholder for album art - will be replaced with platform-specific image loading
-                Box(
+                // Album art via MediaArtwork (Coil) — falls back to album icon
+                MediaArtwork(
+                    artworkUri = album.artworkUri,
+                    contentDescription = album.name,
                     modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Album,
-                        contentDescription = album.name,
-                        tint = WhiteMuted,
-                        modifier = Modifier.size(32.dp)
-                    )
-                }
+                    placeholderIconSize = 32.dp,
+                    mediaType = MediaType.AUDIO,
+                    songUri = null
+                )
             }
 
             Column(
@@ -611,6 +609,7 @@ fun GlassHeader(
     var selectedTabIndex by remember { mutableIntStateOf(1) } // Default to "Chansons"
     val scope = rememberCoroutineScope()
 
+    // Sync tab indicator to pager scroll
     LaunchedEffect(pagerState.currentPage) {
         selectedTabIndex = pagerState.currentPage
     }
@@ -696,7 +695,13 @@ fun GlassHeader(
                 tabs.forEachIndexed { index, title ->
                     Tab(
                         selected = index == selectedTabIndex,
-                        onClick = { selectedTabIndex = index },
+                        onClick = {
+                            selectedTabIndex = index
+                            // Scroll pager to the selected tab
+                            scope.launch {
+                                pagerState.animateScrollToPage(index)
+                            }
+                        },
                         text = {
                             Text(
                                 text = title,
@@ -799,7 +804,9 @@ fun FeaturedCard(song: Song, onClick: (Song) -> Unit) {
                 artworkUri = song.albumArtUri,
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
-                placeholderIconSize = 48.dp
+                placeholderIconSize = 48.dp,
+                mediaType = song.type,
+                songUri = song.uri
             )
 
             // Video Indicator
@@ -866,54 +873,95 @@ fun SongItem(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // Album art using MediaArtwork
+            // Thumbnail 56dp with video/audio badge overlay
             Box(
                 modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(OnyxSurface),
-                contentAlignment = Alignment.Center
+                    .size(56.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(OnyxSurface)
             ) {
                 MediaArtwork(
                     artworkUri = song.albumArtUri,
                     contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
-                    placeholderIconSize = 24.dp
+                    placeholderIconSize = 28.dp,
+                    mediaType = song.type,
+                    songUri = song.uri
                 )
+                // Badge VIDEO en haut à droite
+                if (song.type == MediaType.VIDEO) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(3.dp)
+                            .background(
+                                color = LarkAccent.copy(alpha = 0.9f),
+                                shape = RoundedCornerShape(4.dp)
+                            )
+                            .padding(horizontal = 3.dp, vertical = 1.dp)
+                    ) {
+                        Text(
+                            text = "VID",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
+                            color = MidnightBlack,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
             }
 
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(3.dp)
             ) {
                 Text(
                     text = song.title,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
                     color = WhitePure,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Text(
-                    text = song.artist,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = WhiteMuted,
-                    maxLines = 1
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = song.artist,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = WhiteMuted,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    if (song.duration > 0) {
+                        Text(
+                            text = "• ${formatSongDuration(song.duration)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = WhiteDim
+                        )
+                    }
+                }
             }
 
-            // Video indicator
-            if (song.type == MediaType.VIDEO) {
-                Icon(
-                    Icons.Rounded.Videocam,
-                    contentDescription = null,
-                    tint = LarkAccent,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
+            // More options button
+            Icon(
+                imageVector = Icons.Filled.MoreVert,
+                contentDescription = "Options",
+                tint = WhiteDim,
+                modifier = Modifier.size(18.dp)
+            )
         }
     }
+}
+
+/** Formats milliseconds as mm:ss */
+private fun formatSongDuration(durationMs: Long): String {
+    val totalSec = (durationMs / 1000).coerceAtLeast(0)
+    val min = totalSec / 60
+    val sec = totalSec % 60
+    return "%d:%02d".format(min, sec)
 }

@@ -56,7 +56,7 @@ import com.example.sonor.presentation.ui.screens.AlbumDetailScreen
 import com.example.sonor.presentation.ui.screens.ArtistDetailScreen
 import com.example.sonor.presentation.ui.screens.PlaylistDetailScreen
 import com.example.sonor.presentation.folders.FolderExplorerScreen
-import com.example.sonor.ui.components.MiniPlayer
+import com.example.sonor.presentation.ui.components.MiniPlayer
 import com.example.sonor.presentation.viewmodel.AuthViewModel
 import com.example.sonor.presentation.ui.screens.LoginScreen
 import com.example.sonor.ui.screens.SplashScreen
@@ -209,6 +209,8 @@ class MainActivity : ComponentActivity() {
                             MiniPlayer(
                                 playerState = sharedPlayerState,
                                 onTogglePlayPause = { homeViewModel.togglePlayPause() },
+                                onSkipPrevious = { homeViewModel.skipPrevious() },
+                                onSkipNext = { homeViewModel.skipNext() },
                                 onClick = { isPlayerExpanded = true }
                             )
                         }
@@ -291,6 +293,9 @@ class MainActivity : ComponentActivity() {
                             },
                             onPlaylistClick = { playlist ->
                                 navController.navigate(Screen.playlistDetailRoute(playlist.id, playlist.name, playlist.description))
+                            },
+                            onSettingsClick = {
+                                navController.navigate(Screen.Settings.route)
                             }
                         )
                     }
@@ -354,6 +359,7 @@ class MainActivity : ComponentActivity() {
                         EqualizerScreen(
                             playerState    = sharedPlayerState,
                             onToggleEqualizer = { enabled -> homeViewModel.toggleEqualizer(enabled) },
+                            onBandLevelChange = { band, level -> homeViewModel.setEqualizerBandLevel(band, level) },
                             onBack         = { navController.popBackStack() }
                         )
                     }
@@ -561,7 +567,9 @@ class MainActivity : ComponentActivity() {
                                                     artworkUri = song.albumArtUri,
                                                     contentDescription = null,
                                                     modifier = Modifier.fillMaxSize(),
-                                                    placeholderIconSize = 20.dp
+                                                    placeholderIconSize = 20.dp,
+                                                    mediaType = song.type,
+                                                    songUri = song.uri
                                                 )
                                             }
                                             

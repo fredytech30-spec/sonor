@@ -11,6 +11,9 @@ import com.example.sonor.audio.MusicControllerImpl
 /**
  * Android actual: wraps ExoPlayer's [PlayerView] and connects it to
  * the shared [MusicController] ExoPlayer instance.
+ * 
+ * useController = true expose les contrôles natifs ExoPlayer (seek, play/pause, skip).
+ * On ne libère PAS le player ici — le lifecycle est géré par MusicControllerImpl.
  */
 @Composable
 actual fun VideoPlayer(
@@ -26,12 +29,16 @@ actual fun VideoPlayer(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT
                 )
+                // Activer les contrôles natifs ExoPlayer (play/pause, seek, skip)
                 useController = true
+                // Afficher les overlays de contrôle pendant 3 secondes puis disparaître
+                controllerShowTimeoutMs = 3000
+                controllerHideOnTouch = true
             }
         },
         update = { playerView ->
             if (musicController is MusicControllerImpl) {
-                // Attach player deterministically on every update to avoid stale attachments.
+                // Attacher le player à chaque update pour éviter les attachements périmés
                 if (playerView.player != musicController.exoPlayer) {
                     playerView.player = musicController.exoPlayer
                 }
@@ -39,16 +46,10 @@ actual fun VideoPlayer(
         }
     )
 
-    // Keep playback in sync with UI intent when possible.
-    LaunchedEffect(isPlaying, musicController) {
-        if (isPlaying) musicController.resume() else musicController.pause()
-    }
-
-    // Cleanup ExoPlayer listener/resources when this composable leaves composition.
+    // Ne PAS libérer les ressources ExoPlayer ici — géré par le cycle de vie de MusicControllerImpl
     DisposableEffect(musicController) {
         onDispose {
-            // MusicControllerImpl.android has a release() method; dispose only when applicable.
-            (musicController as? com.example.sonor.audio.MusicControllerImpl)?.release()
+            // Détacher uniquement la vue, pas le player
         }
     }
 }
