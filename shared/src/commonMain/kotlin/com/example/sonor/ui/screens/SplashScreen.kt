@@ -44,19 +44,12 @@ fun SplashScreen(onAnimationFinished: () -> Unit) {
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Box(
+            com.example.sonor.presentation.ui.components.AppLogo(
                 modifier = Modifier
-                    .size(120.dp)
+                    .size(140.dp)
                     .scale(scale.value)
                     .clip(CircleShape)
-                    .background(Brush.linearGradient(LuxuryGoldGradient)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "S",
-                    style = Typography.displayLarge.copy(fontSize = 72.sp, color = Color.Black)
-                )
-            }
+            )
             
             Spacer(modifier = Modifier.height(24.dp))
             

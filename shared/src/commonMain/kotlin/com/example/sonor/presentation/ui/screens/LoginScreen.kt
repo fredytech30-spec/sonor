@@ -82,24 +82,18 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Iconic "S" Logo with Glow
+            // Iconic logo with Glow
             Surface(
                 modifier = Modifier
-                    .size(90.dp)
+                    .size(100.dp)
                     .clip(CircleShape)
                     .border(2.dp, Brush.linearGradient(LuxuryGoldGradient), CircleShape),
                 color = OnyxSurface,
                 tonalElevation = 20.dp
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = "S",
-                        style = Typography.displayLarge.copy(
-                            fontSize = 58.sp,
-                            brush = Brush.verticalGradient(LuxuryGoldGradient)
-                        )
-                    )
-                }
+                com.example.sonor.presentation.ui.components.AppLogo(
+                    modifier = Modifier.fillMaxSize()
+                )
             }
 
             Spacer(modifier = Modifier.height(24.dp))
