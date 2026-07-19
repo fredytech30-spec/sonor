@@ -37,6 +37,7 @@ import com.example.sonor.domain.model.PlaylistEntity
 import com.example.sonor.domain.model.PlatformFile
 import com.example.sonor.presentation.viewmodel.HomeViewModel
 import com.example.sonor.presentation.viewmodel.HomeUiState
+import com.example.sonor.presentation.ui.components.MediaArtwork
 import com.example.sonor.ui.theme.*
 import kotlinx.coroutines.flow.flowOf
 
@@ -47,7 +48,8 @@ fun HomeScreen(
     onSearchClick: () -> Unit,
     onArtistClick: (Artist) -> Unit,
     onAlbumClick: (Album) -> Unit,
-    onPlaylistClick: (PlaylistEntity) -> Unit
+    onPlaylistClick: (PlaylistEntity) -> Unit,
+    onSettingsClick: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val mostPlayed by viewModel.mostPlayed.collectAsState()
@@ -95,7 +97,8 @@ fun HomeScreen(
                     onSearchClick = onSearchClick,
                     onArtistClick = onArtistClick,
                     onAlbumClick = onAlbumClick,
-                    onPlaylistClick = onPlaylistClick
+                    onPlaylistClick = onPlaylistClick,
+                    onSettingsClick = onSettingsClick
                 )
             }
             is HomeUiState.Error -> {
@@ -120,7 +123,8 @@ fun HomeContent(
     onSearchClick: () -> Unit,
     onArtistClick: (Artist) -> Unit,
     onAlbumClick: (Album) -> Unit,
-    onPlaylistClick: (PlaylistEntity) -> Unit
+    onPlaylistClick: (PlaylistEntity) -> Unit,
+    onSettingsClick: () -> Unit
 ) {
     val tabs = listOf("Vidéos", "Chansons", "Playlists", "Dossiers", "Artistes", "Albums")
     val pagerState = rememberPagerState(pageCount = { tabs.size })
@@ -167,7 +171,7 @@ fun HomeContent(
 
         // Floating Glass Header with Tabs
         Column {
-            GlassHeader(tabs, pagerState, onSearchClick)
+            GlassHeader(tabs, pagerState, onSearchClick, onSettingsClick)
         }
     }
 }
@@ -601,7 +605,8 @@ fun ChansonsTabContent(
 fun GlassHeader(
     tabs: List<String>,
     pagerState: androidx.compose.foundation.pager.PagerState,
-    onSearchClick: () -> Unit
+    onSearchClick: () -> Unit,
+    onSettingsClick: () -> Unit
 ) {
     var selectedTabIndex by remember { mutableIntStateOf(1) } // Default to "Chansons"
     val scope = rememberCoroutineScope()
@@ -667,7 +672,7 @@ fun GlassHeader(
                         Icon(Icons.Rounded.Sort, contentDescription = "Trier", tint = WhitePure, modifier = Modifier.size(24.dp))
                     }
                     IconButton(
-                        onClick = {},
+                        onClick = onSettingsClick,
                         modifier = Modifier.size(40.dp)
                     ) {
                         Icon(Icons.Rounded.Settings, contentDescription = "Paramètres", tint = WhitePure, modifier = Modifier.size(24.dp))
@@ -790,18 +795,12 @@ fun FeaturedCard(song: Song, onClick: (Song) -> Unit) {
                 .clip(RoundedCornerShape(20.dp))
                 .background(OnyxSurface)
         ) {
-            // Placeholder for album art
-            Box(
+            MediaArtwork(
+                artworkUri = song.albumArtUri,
+                contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.MusicNote,
-                    contentDescription = null,
-                    tint = WhiteMuted,
-                    modifier = Modifier.size(48.dp)
-                )
-            }
+                placeholderIconSize = 48.dp
+            )
 
             // Video Indicator
             if (song.type == MediaType.VIDEO) {
@@ -871,7 +870,7 @@ fun SongItem(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Album art placeholder
+            // Album art using MediaArtwork
             Box(
                 modifier = Modifier
                     .size(48.dp)
@@ -879,11 +878,11 @@ fun SongItem(
                     .background(OnyxSurface),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Rounded.MusicNote,
+                MediaArtwork(
+                    artworkUri = song.albumArtUri,
                     contentDescription = null,
-                    tint = WhiteMuted,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.fillMaxSize(),
+                    placeholderIconSize = 24.dp
                 )
             }
 

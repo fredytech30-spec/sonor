@@ -11,7 +11,8 @@ data class PlayerState(
     val repeatMode: Int = REPEAT_MODE_OFF,
     val playbackSpeed: Float = 1f,
     val equalizerEnabled: Boolean = false,
-    val sleepTimerRemainingMillis: Long = 0L
+    val sleepTimerRemainingMillis: Long = 0L,
+    val currentQueue: List<Song> = emptyList()
 ) {
     companion object {
         const val STATE_IDLE = 0

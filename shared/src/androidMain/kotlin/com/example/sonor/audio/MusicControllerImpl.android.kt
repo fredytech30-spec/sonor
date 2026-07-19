@@ -93,7 +93,8 @@ public class MusicControllerImpl(context: Context) : MusicController {
         _playerState.value = _playerState.value.copy(
             currentSong = song,
             currentSongId = song.id,
-            isPlaying = true
+            isPlaying = true,
+            currentQueue = listOf(song)
         )
     }
 
@@ -107,7 +108,8 @@ public class MusicControllerImpl(context: Context) : MusicController {
         _playerState.value = _playerState.value.copy(
             currentSong = current,
             currentSongId = current?.id,
-            isPlaying = true
+            isPlaying = true,
+            currentQueue = songs
         )
     }
 

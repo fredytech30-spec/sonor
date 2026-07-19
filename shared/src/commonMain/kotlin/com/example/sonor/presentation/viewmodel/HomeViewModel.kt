@@ -22,7 +22,7 @@ sealed interface HomeUiState {
 
 class HomeViewModel(
     private val songRepository: SongRepository,
-    private val musicController: MusicController
+    val musicController: MusicController
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)

@@ -20,13 +20,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.sonor.audio.MusicController
+import com.example.sonor.domain.model.MediaType
 import com.example.sonor.domain.model.PlayerState
+import com.example.sonor.presentation.ui.components.MediaArtwork
+import com.example.sonor.presentation.ui.components.VideoPlayer
 import com.example.sonor.ui.theme.*
 
 @Composable
 fun NowPlayingScreen(
     playerState: PlayerState,
     isFavorite: Boolean,
+    musicController: MusicController? = null,
     onToggleFavorite: () -> Unit,
     onTogglePlayPause: () -> Unit,
     onSkipNext: () -> Unit,
@@ -118,44 +123,56 @@ fun NowPlayingScreen(
                 verticalArrangement = Arrangement.spacedBy(28.dp)
             ) {
 
-                // ── Album Artwork ──────────────────────────────────────────────
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(0.8f)
-                        .aspectRatio(1f)
-                        .graphicsLayer {
-                            scaleX = artworkScale
-                            scaleY = artworkScale
-                        }
-                        .clip(RoundedCornerShape(28.dp))
-                        .background(
-                            Brush.linearGradient(
-                                listOf(DeepSpace, OnyxSurface)
-                            )
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    // Glow ring when playing
-                    if (playerState.isPlaying) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(
-                                    Brush.radialGradient(
-                                        listOf(
-                                            LarkAccent.copy(alpha = 0.15f),
-                                            Color.Transparent
-                                        )
-                                    )
-                                )
+                // ── Artwork ou VideoPlayer selon le type ───────────────────────
+                val isVideo = currentSong?.type == MediaType.VIDEO
+
+                if (isVideo && musicController != null) {
+                    // Lecteur vidéo réel en pleine largeur
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(16f / 9f)
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(Color.Black)
+                    ) {
+                        VideoPlayer(
+                            modifier = Modifier.fillMaxSize(),
+                            musicController = musicController,
+                            isPlaying = playerState.isPlaying
                         )
                     }
-                    Icon(
-                        imageVector = Icons.Rounded.MusicNote,
-                        contentDescription = null,
-                        tint = WhiteDim,
-                        modifier = Modifier.size(72.dp)
-                    )
+                } else {
+                    // Artwork audio avec animation de pulsation
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.8f)
+                            .aspectRatio(1f)
+                            .graphicsLayer {
+                                scaleX = artworkScale
+                                scaleY = artworkScale
+                            }
+                            .clip(RoundedCornerShape(28.dp))
+                            .background(Brush.linearGradient(listOf(DeepSpace, OnyxSurface))),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (playerState.isPlaying) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        Brush.radialGradient(
+                                            listOf(LarkAccent.copy(alpha = 0.15f), Color.Transparent)
+                                        )
+                                    )
+                            )
+                        }
+                        MediaArtwork(
+                            artworkUri = currentSong?.albumArtUri,
+                            contentDescription = currentSong?.title,
+                            modifier = Modifier.fillMaxSize(),
+                            placeholderIconSize = 72.dp
+                        )
+                    }
                 }
 
                 // ── Title, Artist & Favorite ───────────────────────────────────
